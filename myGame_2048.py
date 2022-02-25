@@ -11,7 +11,7 @@ class Base2048:
         self._prev_board = None
         np.random.seed(seed=r_seed)
 
-        print(self.insert_random_tile(5))
+        print(self.insert_random_tile(2))
 
         self.score = 0
 
@@ -38,8 +38,8 @@ class Base2048:
                     if t == t_neighbour:
                         t = t + t_neighbour
                         tile_list.pop()
+                        self.score += t
                 new_row.append(t)
-                score += t
             new_row.extend([None] * (4 - len(new_row)))  
             new_row.reverse()
             self.board[row,:] = new_row
@@ -59,8 +59,8 @@ class Base2048:
                     if t == t_neighbour:
                         t = t + t_neighbour
                         tile_list.pop()
+                        self.score += t
                 new_row.append(t)
-                score += t
             new_row.extend([None] * (4 - len(new_row)))  
             self.board[row,:] = new_row
     
@@ -77,8 +77,8 @@ class Base2048:
                     if t == t_neighbour:
                         t = t + t_neighbour
                         tile_list.pop()
+                        self.score += t
                 new_col.append(t)
-                score += t
             new_col.extend([None] * (4 - len(new_col)))  
             new_col.reverse()
             self.board[:,col] = new_col
@@ -97,8 +97,8 @@ class Base2048:
                     if t == t_neighbour:
                         t = t + t_neighbour
                         tile_list.pop()
+                        self.score += t
                 new_col.append(t)
-                score += t
             new_col.extend([None] * (4 - len(new_col)))  
             self.board[:,col] = new_col
 
@@ -120,30 +120,62 @@ class Base2048:
 import os, pygame
 from pygame.locals import *
 class Demo2048:
-    def __init__(self):
-        self.actions = {
-            "left": K_LEFT, 
-            "right": K_RIGHT, 
-            "up": K_UP, 
-            "down": K_DOWN 
-        }
+    def __init__(self, n):
 
-        self.tile_color_scheme = ['#eee4da', '#eee1c9', '#f3b27a', '#f69664', '#f77c5f', '#f75f3b', '#edd073', '#f9f6f2', '#edc950', '#edc53f', '#edc22e']
-
-        self.base = Base2048(board_size = 5) 
-
-        self.inner_margin = 10 #px
-        self.tile_spacing = 10
-        self.tile_size = 57.5
+        self.inner_margin = 10   #pt
+        self.tile_spacing = 10   
+        self.tile_size = 58  
         
-        self.width = (self.base.board.shape[0] * self.tile_size) \
-                     + (self.base.board.shape[0] - 1) * self.tile_spacing \
+        self.n = n
+        
+        self.width = (n * self.tile_size) \
+                     + (n - 1) * self.tile_spacing \
                      + (2 * self.inner_margin)
         self.height = self.width
 
 
         self._setup()
-        self.draw(None)
+
+        self.running = True
+        self.start_game()
+
+    def start_game(self):
+        #bg colour, font colour, font size
+        self.tile_style = [('#eee4da', "#776e65", 41),
+                           ('#eee1c9', "#776e65", 41),
+                           ('#f3b27a', "#f9f6f2", 41),
+                           ('#f69664', "#f9f6f2", 41),
+                           ('#f77c5f', "#f9f6f2", 41),
+                           ('#f75f3b', "#f9f6f2", 41),
+                           ('#edd073', "#f9f6f2", 29),
+                           ('#edcc62', "#f9f6f2", 29),
+                           ('#edc950', "#f9f6f2", 29),
+                           ('#edc53f', "#f9f6f2", 20),
+                           ('#edc22e', "#f9f6f2", 20),
+                           ('#3c3a33', "#f9f6f2", 20)]
+
+        self.base = Base2048(board_size = self.n) 
+        print(self.base.board)
+        while self.running:
+
+            self.draw(None)
+            self.display_score()
+            # poll key events
+            for event in pygame.event.get():
+                # get keys pressed
+                key_pressed = pygame.key.get_pressed()
+                if event.type == pygame.QUIT:
+                    self.running = False
+                if key_pressed[pygame.K_LEFT]:
+                    self.base.shift("left")
+                if key_pressed[pygame.K_UP]:
+                    self.base.shift("up")
+                if key_pressed[pygame.K_DOWN]:
+                    self.base.shift("down")
+                if key_pressed[pygame.K_RIGHT]:
+                    self.base.shift("right")
+            
+        pygame.quit()
 
     def draw(self, background_color):
         background_color = "#bbada0" 
@@ -158,9 +190,10 @@ class Demo2048:
                 if tile == None:
                     color = "#cdc1b4"
                 else:
-                    color = self.tile_color_scheme[int(np.log2(tile)) - 1]
-
-
+                    style = self.tile_style[int(np.log2(tile)) - 1]
+                    color = style[0]
+                    font_color = style[1]
+                    font_size = style[2]
 
                 t = pygame.draw.rect(self.screen, color, 
                                  pygame.Rect(x, y, self.tile_size, self.tile_size),
@@ -169,25 +202,23 @@ class Demo2048:
                                  border_bottom_left_radius=3,
                                  border_bottom_right_radius=3)
 
-                font = pygame.freetype.SysFont("comicsansms", 0) 
                 if tile != None:
-
-                    text_rect = font.get_rect(str(tile), size = 50)
+                    font = pygame.font.SysFont("Arial", size = font_size, bold = True) 
+                    text = font.render(str(tile), True, font_color)
+                    
+                    text_rect = text.get_rect()
                     text_rect.center = t.center 
-                    font.render_to(self.screen, text_rect, str(tile), "black", size = 50)  
 
-
-
+                    self.screen.blit(text, dest=text_rect)
 
                 x += self.tile_size + self.tile_spacing
             y += self.tile_size + self.tile_spacing
 
-
-
-
-
         pygame.display.update()
-        print(self.base.board)
+
+    def display_score(self):
+        pygame.display.set_caption('Score - ' + str(self.base.score))
+
 
     def _setup(self):
         """
@@ -215,7 +246,7 @@ class Demo2048:
 
 if __name__ == '__main__':
     #pygame.init()
-    game = Demo2048()
+    game = Demo2048(4)
     running = True
     while running:
         for i in pygame.event.get():
