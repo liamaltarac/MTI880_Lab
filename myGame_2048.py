@@ -161,12 +161,22 @@ class Demo2048:
                     color = self.tile_color_scheme[int(np.log2(tile)) - 1]
 
 
-                pygame.draw.rect(self.screen, color, 
+
+                t = pygame.draw.rect(self.screen, color, 
                                  pygame.Rect(x, y, self.tile_size, self.tile_size),
                                  border_top_left_radius=3,
                                  border_top_right_radius=3,
                                  border_bottom_left_radius=3,
                                  border_bottom_right_radius=3)
+
+                font = pygame.freetype.SysFont("comicsansms", 0) 
+                if tile != None:
+
+                    text_rect = font.get_rect(str(tile), size = 50)
+                    text_rect.center = t.center 
+                    font.render_to(self.screen, text_rect, str(tile), "black", size = 50)  
+
+
 
 
                 x += self.tile_size + self.tile_spacing
@@ -174,7 +184,10 @@ class Demo2048:
 
 
 
+
+
         pygame.display.update()
+        print(self.base.board)
 
     def _setup(self):
         """
