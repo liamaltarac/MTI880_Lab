@@ -4,16 +4,16 @@ import numpy as np
 class Base2048:
 
     def __init__(self, r_seed = 1, board_size = 4):
-        
+        np.random.seed(seed=r_seed)
+
         self.board_size = board_size
 
         self.board = np.full((board_size, board_size), None)
         self._prev_board = None
-        np.random.seed(seed=r_seed)
-
-        print(self.insert_random_tile(2))
-
+        
         self.score = 0
+        self.game_state = "playing"
+        self.insert_random_tile(2)
 
     def get_board(self):
         return self.board
@@ -25,9 +25,11 @@ class Base2048:
         if not np.array_equiv(self._prev_board, self.board):
             self.insert_random_tile()
 
+        self.game_state = self.get_game_state() 
+
     def shift_right(self):
         # get non-Null tiles from row
-        for row in range(4):
+        for row in range(self.board_size):
             tile_list = np.extract(self.board[row,:] != None, self.board[row,:]).tolist()
             new_row = [] 
             # starting at the right-most tile, and moving to the left: Multiply tile with next tile if both tiles are of same value
@@ -40,14 +42,14 @@ class Base2048:
                         tile_list.pop()
                         self.score += t
                 new_row.append(t)
-            new_row.extend([None] * (4 - len(new_row)))  
+            new_row.extend([None] * (self.board_size - len(new_row)))  
             new_row.reverse()
             self.board[row,:] = new_row
         
 
     def shift_left(self):
         # get non-Null tiles from row
-        for row in range(4):
+        for row in range(self.board_size):
             tile_list = np.extract(self.board[row,:] != None, self.board[row,:]).tolist()
             tile_list.reverse()
             new_row = [] 
@@ -61,12 +63,12 @@ class Base2048:
                         tile_list.pop()
                         self.score += t
                 new_row.append(t)
-            new_row.extend([None] * (4 - len(new_row)))  
+            new_row.extend([None] * (self.board_size - len(new_row)))  
             self.board[row,:] = new_row
     
     def shift_down(self):
         # get non-Null tiles from column
-        for col in range(4):
+        for col in range(self.board_size):
             tile_list = np.extract(self.board[:,col] != None, self.board[:,col]).tolist()
             new_col = [] 
             # starting at the bottom-most tile, and moving to the up: Multiply tile with next tile if both tiles are of same value
@@ -79,13 +81,13 @@ class Base2048:
                         tile_list.pop()
                         self.score += t
                 new_col.append(t)
-            new_col.extend([None] * (4 - len(new_col)))  
+            new_col.extend([None] * (self.board_size - len(new_col)))  
             new_col.reverse()
             self.board[:,col] = new_col
 
     def shift_up(self):
         # get non-Null tiles from column
-        for col in range(4):
+        for col in range(self.board_size):
             tile_list = np.extract(self.board[:,col] != None, self.board[:,col]).tolist()
             tile_list.reverse()
             new_col = [] 
@@ -99,7 +101,7 @@ class Base2048:
                         tile_list.pop()
                         self.score += t
                 new_col.append(t)
-            new_col.extend([None] * (4 - len(new_col)))  
+            new_col.extend([None] * (self.board_size - len(new_col)))  
             self.board[:,col] = new_col
 
 
@@ -114,6 +116,35 @@ class Base2048:
                 picked_tile = tuple(pos[r]) #Pick at random an availble tile
 
                 self.board[picked_tile] = val
+        
+    def get_game_state(self):
+        
+        #Playing, Won, Lost
+        if np.nanmax(self.board.astype('float64')) >= 2048:
+            return "won"
+        
+        if len(np.argwhere(self.board == None)) > 0: #If there are empty cells
+            return "playing"
+
+        playable = False
+        #Check each tile neighbour to check for pairs
+        for i in range(self.board_size):
+            for j in range(self.board_size-1):
+                tile = self.board[i,j]
+                neigh_tile = self.board[i,j+1]
+                if tile == neigh_tile:
+                    return "playing"
+
+        for i in range(self.board_size-1):
+            for j in range(self.board_size):
+                tile = self.board[i,j]
+                neigh_tile = self.board[i+1,j]
+                if tile == neigh_tile:
+                    return "playing"            
+
+        print("LOST")
+        return "lost"                 
+
 
 
 
@@ -155,7 +186,7 @@ class Demo2048:
                            ('#3c3a33', "#f9f6f2", 20)]
 
         self.base = Base2048(board_size = self.n) 
-        print(self.base.board)
+
         while self.running:
 
             self.draw(None)
@@ -217,13 +248,10 @@ class Demo2048:
         pygame.display.update()
 
     def display_score(self):
-        pygame.display.set_caption('Score - ' + str(self.base.score))
+        pygame.display.set_caption('Score - ' + str(self.base.score) + " - " + self.base.game_state)
 
 
     def _setup(self):
-        """
-        Setups up the pygame env, the display and game clock.
-        """
         pygame.init()
         self.screen = pygame.display.set_mode((self.width, self.height))
         
