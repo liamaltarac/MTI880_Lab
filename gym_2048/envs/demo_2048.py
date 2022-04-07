@@ -1,7 +1,8 @@
 # Base game functionnality
 from lib2to3.pytree import Base
 import numpy as np
-
+from PIL import Image
+import cv2
 actions = ["left", "right", "up", "down"]
 class Base2048:
 
@@ -10,15 +11,16 @@ class Base2048:
 
         self.board_size = board_size
 
-        self.board = np.full((board_size, board_size), 0)
+        self.board = np.full((board_size, board_size), 0, dtype=np.int64)
         self._prev_board = None
         
         self.score = 0
         self.game_state = "playing"
         self.insert_random_tile(2)
+        self.max_tile = None
 
     def get_board(self):
-        return self.board
+        return np.array([self.board])
 
     def shift(self, i):
         self._prev_board = self.board.copy()
@@ -28,6 +30,7 @@ class Base2048:
             self.insert_random_tile()
 
         self.game_state = self.get_game_state()
+        self.max_tile = np.nanmax(self.board.astype('float64'))
         if np.array_equiv(self._prev_board, self.board) and self.game_state is not "lost":
             return  "inv"
         return  self.game_state
@@ -158,17 +161,17 @@ from pygame.locals import *
 
 
 #bg colour, font colour, font size
-tile_style = [  ('#eee4da', "#776e65", 41),
-                ('#eee1c9', "#776e65", 41),
-                ('#f3b27a', "#f9f6f2", 41),
-                ('#f69664', "#f9f6f2", 41),
-                ('#f77c5f', "#f9f6f2", 41),
-                ('#f75f3b', "#f9f6f2", 41),
-                ('#edd073', "#f9f6f2", 29),
-                ('#edcc62', "#f9f6f2", 29),
-                ('#edc950', "#f9f6f2", 29),
-                ('#edc53f', "#f9f6f2", 20),
-                ('#edc22e', "#f9f6f2", 20),
+tile_style = [  ('#eee4da', "#776e65", 41), #2
+                ('#efe1c9', "#776e65", 41), #4
+                ('#f3b27a', "#f9f6f2", 41), #8
+                ('#f69664', "#f9f6f2", 41), #16
+                ('#f77c5f', "#f9f6f2", 41), #32
+                ('#f75f3b', "#f9f6f2", 41), #64
+                ('#edd073', "#f9f6f2", 29), #128
+                ('#eecc62', "#f9f6f2", 29), #256
+                ('#efc950', "#f9f6f2", 29), #512
+                ('#eac53f', "#f9f6f2", 20), #1024
+                ('#ebc22e', "#f9f6f2", 20), #2048
                 ('#3c3a33', "#f9f6f2", 20)]
 
 class Demo2048(Base2048):
@@ -297,8 +300,8 @@ class Demo2048(Base2048):
         numpy uint8 array
             Returns a numpy array with the shape (width, height, 3).
         """
-        return pygame.surfarray.array3d(
-            pygame.display.get_surface()).astype(np.uint8)
+        return cv2.resize(np.fliplr(np.rot90(pygame.surfarray.array3d(
+            pygame.display.get_surface()).astype(np.uint8), k=3)), (64,64))
     
     def getStateMatrix(self):
 
